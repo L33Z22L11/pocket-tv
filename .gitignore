@@ -1,0 +1,17 @@
+.venv/
+__pycache__/
+firmware/build/
+firmware/sdkconfig*
+!firmware/sdkconfig.defaults
+logs/
+cache/
+media/*
+!media/README.txt
+dist/
+
+tests/fixtures/
+
+.DS_Store
+.env
+.env.*
+publication/*receipt*.json

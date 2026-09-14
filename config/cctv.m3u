@@ -1,0 +1,6 @@
+#EXTM3U
+# Source: https://github.com/iptv-org/iptv
+#EXTINF:-1 group-title="CCTV+",CCTV+ 1
+https://cd-live-stream.news.cctvplus.com/live/smil:CHANNEL1.smil/playlist.m3u8
+#EXTINF:-1 group-title="CCTV+",CCTV+ 2
+https://cd-live-stream.news.cctvplus.com/live/smil:CHANNEL2.smil/playlist.m3u8

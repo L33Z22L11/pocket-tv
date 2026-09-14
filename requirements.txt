@@ -1,0 +1,3 @@
+Pillow==11.3.0
+pyserial==3.5
+av==15.1.0
