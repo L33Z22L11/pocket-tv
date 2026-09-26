@@ -61,7 +61,7 @@ class ConnectionTests(unittest.TestCase):
         calls=[]
         class Device:
             def __init__(self, path):
-                self.state=dict(protocol='PTV5',count=2,index=0,playing=True,volume=55)
+                self.state=dict(protocol='PTV6',count=2,index=0,playing=True,volume=55)
             def request(self, kind, argument=0):
                 calls.append(kind)
                 if kind==SELECT: self.state['index']=argument
@@ -73,3 +73,13 @@ class ConnectionTests(unittest.TestCase):
             player._play_session(['a','b'],'fake',-1,20,queue.Queue(),resume)
         self.assertEqual(calls,[HELLO,SELECT,KEY,STOP])
         self.assertEqual(resume,{'index':1,'playing':False})
+
+    def test_packet_timeout_and_crc_error_trigger_supervisor_reconnect(self):
+        for code in (1, 2):
+            link=Link.__new__(Link)
+            link.replies={7:dict(error=code)}
+            with self.assertRaises(ConnectionError):link.collect(7)
+            link.replies={7:dict(error=code)}
+            self.assertEqual(link.collect(7,allow_error=True)['error'],code)
+        link=Link.__new__(Link);link.replies={7:dict(error=131)}
+        with self.assertRaises(RuntimeError):link.collect(7)

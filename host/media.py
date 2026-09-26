@@ -8,7 +8,9 @@ import re
 from urllib.parse import urljoin, urlparse
 from urllib.request import Request, urlopen
 import av
+from transport import MAX_PAYLOAD
 from PIL import Image
+from hls import HLSReader, UnsupportedHLS
 
 @dataclass
 class Event:
@@ -32,13 +34,13 @@ def encode_frame(frame, sar=1):
     picture = frame.reformat(width=pre_w, height=pre_h, format='rgb24').to_image()
     if rotation:
         picture = picture.rotate(rotation, expand=True)
-    for colors in (256, 128, 64, 32, 16):
+    for colors in (256, 128, 64, 32, 16, 8):
         indexed = picture.quantize(colors=colors, method=Image.Quantize.FASTOCTREE, dither=Image.Dither.NONE)
         palette = indexed.getpalette() or []
         palette += [0] * (768 - len(palette))
         rgb565 = b''.join(struct.pack('>H', ((palette[i] >> 3) << 11) | ((palette[i+1] >> 2) << 5) | (palette[i+2] >> 3)) for i in range(0, 768, 3))
         payload = struct.pack('<HH', *indexed.size) + rgb565 + zlib.compress(indexed.tobytes(), 1)
-        if len(payload) <= 49152:
+        if len(payload) <= MAX_PAYLOAD:
             return Event('video', payload=payload, landscape=landscape)
     raise ValueError('Unable to fit video frame into USB packet')
 
@@ -72,8 +74,11 @@ def media_url(source):
 
 
 class Decoder:
-    def __init__(self, source, fps=20):
+    def __init__(self, source, fps=20, prefetch=True):
         self.source, self.fps = source, fps
+        self.has_audio = None
+        self.prefetch = prefetch
+        self.reader = None
         self.queue = queue.Queue(maxsize=256)
         self.stop = threading.Event()
         self.thread = threading.Thread(target=self.run, daemon=True, name='media-decoder')
@@ -90,16 +95,35 @@ class Decoder:
 
     def close(self):
         self.stop.set()
-        self.thread.join(timeout=12)
+        if self.reader:
+            self.reader.close()
+        # The network thread owns its AV container. Never close it from another
+        # thread; signal cancellation and let its bounded I/O finish independently.
+        self.thread.join(timeout=.05)
 
     def run(self):
+        reader = None
         try:
             options = {'rw_timeout': '10000000'}
             if self.source.headers:
                 options['headers'] = ''.join(f'{k}: {v}\r\n' for k, v in self.source.headers.items() if '\n' not in v and '\r' not in v)
-            with av.open(media_url(self.source), timeout=(20, 10), options=options) as container:
+            url = media_url(self.source)
+            if self.stop.is_set():return
+            if self.prefetch and urlparse(url).scheme in ('http', 'https') and urlparse(url).path.lower().endswith('.m3u8'):
+                try:
+                    reader = HLSReader(url, self.source.headers, self.stop)
+                    self.reader = reader
+                except (UnsupportedHLS, OSError, ValueError):
+                    pass  # Native demuxer handles encrypted/fMP4/alternate tracks.
+            if self.stop.is_set():return
+            if reader:
+                print('直播加载：边下载边解码，后台并行缓存后续分段', flush=True)
+                options.update(probesize='262144', analyzeduration='1000000')
+            with av.open(reader or url, format='mpegts' if reader else None,
+                         timeout=None if reader else (20, 10), options=options) as container:
                 if not container.streams.video:
                     raise ValueError('Source has no video stream')
+                self.has_audio = bool(container.streams.audio)
                 video = container.streams.video[0]
                 streams = [video]
                 if container.streams.audio:
@@ -133,3 +157,6 @@ class Decoder:
                 self.put(Event('end'))
         except Exception as exc:
             self.put(Event('error', detail=str(exc)))
+        finally:
+            if reader:
+                reader.close()

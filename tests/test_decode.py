@@ -34,3 +34,18 @@ class DecodeTests(unittest.TestCase):
                 self.assertEqual(audio_count > 0, audio)
             finally:
                 decoder.close()
+
+    def test_switch_does_not_wait_for_blocked_old_network_thread(self):
+        import threading,time
+        from unittest.mock import Mock
+        gate=threading.Event()
+        decoder=Decoder.__new__(Decoder)
+        decoder.stop=threading.Event();decoder.reader=Mock()
+        decoder.thread=threading.Thread(target=lambda:gate.wait(2),daemon=True)
+        decoder.thread.start();started=time.monotonic()
+        try:
+            decoder.close()
+            self.assertLess(time.monotonic()-started,.2)
+            self.assertTrue(decoder.stop.is_set())
+            decoder.reader.close.assert_called_once()
+        finally:gate.set();decoder.thread.join(1)

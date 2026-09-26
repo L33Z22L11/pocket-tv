@@ -12,6 +12,8 @@ if [[ "$mode" != --firmware ]]; then
     trap 'rm -f "$test_binary"' EXIT
     cc -std=c11 -Wall -Wextra -Werror -Imain tests/test_player.c main/player.c -o "$test_binary"
     "$test_binary"
+    cc -std=c11 -Wall -Wextra -Werror -Imain tests/test_osd.c main/osd.c -o "$test_binary"
+    "$test_binary"
     python3 tests/test_verify_firmware.py
     ../.venv/bin/python -m unittest discover -s ../tests -v
 fi

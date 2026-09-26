@@ -12,7 +12,7 @@ from transport import Link, HELLO, KEY, FRAME, LAYOUT, AUDIO, STATUS, VOLUME, ST
 link = Link(sys.argv[1])
 try:
     state = link.request(HELLO, argument=2)
-    assert state['protocol'] == 'PTV5'
+    assert state['protocol'] == 'PTV6'
     saved_volume = state['volume']
     saved_hints = state['hints']
     state = link.request(VOLUME, argument=0)

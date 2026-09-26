@@ -6,6 +6,8 @@ from urllib.parse import urljoin, urlparse
 from urllib.request import Request, urlopen
 
 PRESETS = {
+    'vbskycn': 'https://raw.githubusercontent.com/vbskycn/iptv/master/tv/iptv4.m3u',
+    'vbskycn-ipv6': 'https://raw.githubusercontent.com/vbskycn/iptv/master/tv/iptv6.m3u',
     'iptv-org': 'https://iptv-org.github.io/iptv/index.m3u',
     'china': 'https://iptv-org.github.io/iptv/countries/cn.m3u',
     'free-tv': 'https://raw.githubusercontent.com/Free-TV/IPTV/master/playlist.m3u8',

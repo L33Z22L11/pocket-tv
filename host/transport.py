@@ -18,9 +18,9 @@ from serial.tools import list_ports
 
 ROOT = Path(__file__).resolve().parents[1]
 HEADER = struct.Struct('<8I')
-MAGIC = 0x35565450
-MAX_PAYLOAD = 49152
-HELLO, FRAME, STATUS, KEY, SINK, AUDIO, VOLUME, LAYOUT, STOP, SELECT = range(1, 11)
+MAGIC = 0x36565450
+MAX_PAYLOAD = 32768
+HELLO, FRAME, STATUS, KEY, SINK, AUDIO, VOLUME, LAYOUT, STOP, SELECT, WIFI_CONFIG, WIFI_CLEAR, WIFI_SCAN, WIFI_SCAN_RESULT, NOTICE, CHANNEL_NAME = range(1, 17)
 
 
 @contextlib.contextmanager
@@ -68,11 +68,14 @@ class DeviceRestarted(ConnectionError):
 
 class Link:
     def __init__(self, port):
-        self.serial = serial.Serial(port=None, baudrate=115200, timeout=0.001, write_timeout=3)
-        self.serial.dtr = False
-        self.serial.rts = False
-        self.serial.port = port
-        self.serial.open()
+        if isinstance(port, NetworkEndpoint):
+            self.serial = SocketStream(port)
+        else:
+            self.serial = serial.Serial(port=None, baudrate=115200, timeout=0.001, write_timeout=3)
+            self.serial.dtr = False
+            self.serial.rts = False
+            self.serial.port = port
+            self.serial.open()
         self.established = False
         self.sequence = 0
         self.state = None
@@ -124,6 +127,10 @@ class Link:
         while time.monotonic() < deadline:
             if sequence in self.replies:
                 reply = self.replies.pop(sequence)
+                if reply['error'] in (150, 151):
+                    raise ConnectionError('传输所有权已改变，等待重新握手')
+                if reply['error'] in (1, 2) and not allow_error:
+                    raise ConnectionError('设备收包超时或 CRC 错误，重新建立传输')
                 if reply['error'] and not allow_error:
                     raise RuntimeError(f'Device rejected request: {reply}')
                 return reply
@@ -142,3 +149,66 @@ class Link:
             self.read()
             if self.state and self.state['generation'] != generation:
                 break
+
+
+class NetworkEndpoint:
+    def __init__(self, host, device_id, key, port=5760):
+        self.host, self.device_id, self.key, self.port = host, device_id, key, port
+
+    def __str__(self):
+        return f'wifi://{self.host}:{self.port}'
+
+
+class SocketStream:
+    """Serial-like bounded TCP stream; authenticate a fresh challenge before packets."""
+    def __init__(self, endpoint):
+        import socket
+        import hmac
+        self.socket = socket.create_connection((endpoint.host, endpoint.port), timeout=2)
+        try:
+            self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+            challenge = self._exact(48)
+            if challenge[:4] != b'PTV6' or challenge[4:16].decode('ascii') != endpoint.device_id:
+                raise ConnectionError('Wi-Fi device identity mismatch')
+            self.socket.sendall(hmac.digest(bytes.fromhex(endpoint.key), b'client'+challenge, 'sha256'))
+            proof = b'OK\n'+hmac.digest(bytes.fromhex(endpoint.key), b'server'+challenge, 'sha256')
+            if not hmac.compare_digest(self._exact(35), proof):
+                raise ConnectionError('Wi-Fi pairing rejected; provision again over USB')
+        except BaseException:
+            self.socket.close()
+            raise
+        self.socket.settimeout(.001)
+
+    def _exact(self, count):
+        result = bytearray()
+        while len(result) < count:
+            chunk = self.socket.recv(count-len(result))
+            if not chunk:
+                raise ConnectionError('Wi-Fi connection closed')
+            result.extend(chunk)
+        return bytes(result)
+
+    @property
+    def in_waiting(self):
+        return 4096
+
+    def read(self, size):
+        import socket
+        try:
+            result = self.socket.recv(size)
+        except socket.timeout:
+            return b''
+        if not result:
+            raise ConnectionError('Wi-Fi connection closed')
+        return result
+
+    def write(self, data):
+        self.socket.settimeout(2)
+        try:
+            self.socket.sendall(data)
+            return len(data)
+        finally:
+            self.socket.settimeout(.001)
+
+    def close(self):
+        self.socket.close()

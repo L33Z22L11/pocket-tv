@@ -2,84 +2,84 @@
 
 [English](README.en.md)
 
-把 AI Passport 变成桌边的小电视：播放自己的视频、重温喜欢的片段，也能按频道列表切换网络直播。短按调音量，长按换节目；隐藏文字后，静静看一会儿风景。
+把 AI Passport 当作桌边的小电视：看本地视频，或从频道列表中选择直播。用电脑找频道，用设备按键调音量、换台和暂停。
 
-**需要电脑通过 USB 数据线连接，并持续运行本仓库的播放程序。仅安装固件不能独立播放，不支持蓝牙传视频。**
+**需要电脑持续运行配套程序。只安装固件不能独立播放。**
 
-<img src="assets/cover.png" alt="Pocket TV AI 示意图，非实机截图" width="300">
+<img src="assets/cover.webp" alt="口袋电视封面，AI 示意图，非实机截图" width="270">
 
-## 开始使用
+## 五分钟开始
 
-1. 下载本仓库（GitHub 的 Code → Download ZIP）并解压。电脑安装 Python 3.10–3.13。
-2. 安装 [v1.0.0 完整固件](releases/v1.0.0/pocket-tv-full.bin)，开发者烧录说明见下文。
-3. 用 USB 数据线连接设备，在解压目录运行 `./cctv.sh`（macOS/Linux）或 `cctv.cmd`（Windows）试播。首次运行会下载依赖，请保持联网。
-4. 播放自己的内容：运行 `./play.sh 视频路径`，或把视频放入 `media/` 后运行 `./play.sh`；Windows 使用 `play.cmd`。
-5. 初次音量为 0，短按方向键调高。电脑程序须保持运行。
+1. 下载并解压 [v1.1.0 配套包](https://github.com/L33Z22L11/pocket-tv/releases/tag/v1.1.0)，电脑安装 Python 3.10–3.13，首次启动保持联网。
+2. 在玩法页面安装本版固件；自行烧录可使用 [完整固件](releases/v1.1.0/pocket-tv-full.bin)，起始地址 `0x0`。固件与电脑程序必须使用同一版本。
+3. 用 USB **数据线**连接设备。macOS/Linux 在项目目录运行 `./tv.sh`；Windows 运行 `tv.cmd`。首次启动会安装依赖。
+4. 搜索频道，方向键选中后按回车，或点击绿色“换台”。音量首次默认为 0，请用设备方向键调高。
+5. 播放期间保留电脑程序。退出频道管理器按 `Ctrl+Q`，程序会停止设备播放。
 
-## 现在可以做什么
+当前版本 **1.1.0**。旧版 `v1.0.0` 固件不能与新版电脑程序混用。
 
-- 播放本地视频文件和文件夹，列表播完后循环；支持 MP4、MOV、MKV 等。
-- 播放网络视频、HLS 直播及 M3U 频道列表；可筛选预设列表，附 CCTV+ 双频道试播。
-- 短按方向键调音量，长按换上一项/下一项；横屏时两个方向同时反转。
-- 短按 OK 暂停/继续，长按 OK 开关文字；音量和文字设置在重启后保留。
-- 自动适配视频横竖方向、等比显示；文字用半透明底叠加，不压缩视频区域。
-- USB 拔插或设备重启后自动重连，恢复原频道和启停状态。本地视频会从头播放。
+## 设备怎么操作
 
-## 播放
+| 操作 | 效果 |
+|---|---|
+| 短按 ↑ / ↓ | 横屏：减 / 加音量；竖屏：加 / 减音量 |
+| 长按 ↑ / ↓ | 上一台 / 下一台，横竖屏顺序相同 |
+| 短按 OK | 暂停 / 继续 |
+| 长按 OK | 显示 / 隐藏中文帮助 |
 
-需要 Python 3.10–3.13 和 USB 数据线。macOS/Linux 使用 `./play.sh`，Windows 使用 `play.cmd`；首次启动自动创建虚拟环境并安装依赖。PyAV 自带 FFmpeg 解码库，播放不需要另装 ffmpeg 命令。
+音量会记忆。音量条和左下角文字台标显示片刻后收起；暂停、加载和缓冲时有中文提示。画面自动适配横竖方向，正常播放没有常驻 HUD。
+
+## 电脑上的频道管理器
+
+默认使用 Catppuccin Mocha 主题，左边选频道，中间看播放状态，右边看设备状态和日志。按钮和底栏提示均可点击。
+
+- 输入频道名搜索，按分组或收藏筛选。`F` 收藏，`Ctrl+F` 搜索，`F5` 刷新列表。
+- 空格暂停/继续，`N` / `P` 换台，`+` / `-` 调音量，`H` 开关设备帮助。
+- “测首帧”只检查所选频道能否出画面，不代表持续播放一定稳定。
+- 默认频道列表来自 [vbskycn/iptv](https://github.com/vbskycn/iptv)，也能选择其他来源或填写自己的 M3U 文件/地址。刷新失败时会尝试使用上次缓存。
+
+## 可选：用 Wi-Fi 传输
+
+USB 直连可以直接使用，不必先配网。需要无线传输时：
+
+1. 保持设备通过 USB 连接电脑，在频道管理器按 `W` 或点击底栏“配网”。播放器会先停止。
+2. 从设备扫描到的 **2.4 GHz** 网络中选择一个，输入密码，点击“连接并保存”。隐藏网络可点“手动输入”。
+3. 出现“Wi-Fi 已连接”及设备地址后，重新选台。失败可检查密码后重试或重新扫描；换网也是同一路径。
+4. 电脑和设备须在可互通的局域网中。程序优先 USB，数据连接断开后尝试 Wi-Fi，接回 USB 后切回。**设备仍需供电，电脑程序仍需运行。**
+
+不支持需要网页登录的网络或企业认证。切换连接会重新缓冲，尚不保证无缝；无线长时间播放和复杂网络下的表现仍需进一步验证。
+
+## 播放自己的视频
 
 ```sh
 ./play.sh /path/to/movie.mp4
 ./play.sh /path/to/videos
-./play.sh 'https://example.com/live/index.m3u8'
-./play.sh --preset china --list
-./play.sh --preset china --search CCTV
 ./play.sh /path/to/channels.m3u
 ```
 
-设备重启或拔插 USB 后，脚本保持运行并自动重连，按 USB 设备序列号重新寻找串口（串口名称变化也支持），恢复断连前的频道与播放/暂停状态，音量从设备记忆恢复。网络直播重新缓冲后继续播放；本地文件会从头播放。设备尚未插入时也可先启动脚本等待。
+Windows 使用 `play.cmd`。不带路径时读取 `media/`，多个文件会顺序循环；也可直接传入网络视频地址。终端输入 `q` 再回车退出。`cctv.sh` / `cctv.cmd` 是旧的 CCTV+ 双频道试播入口，不是 CCTV-1/2。
 
-不传路径时读取 `media/`。多个 USB 设备时加 `--port /dev/cu.usbmodem1101`（Windows 例如 `--port COM3`）。`--seconds 10` 限时播放；`--inspect --seconds 3` 只验证解码，不连接设备或输出声音。
+## 使用边界
 
-竖屏时短按 ↑/↓ 增加/降低音量，横屏时方向对调（每次 5，范围 0–100）；竖屏时长按 ↑/↓ 约 1.5 秒切换上一项/下一项，横屏时换台方向也对调。短按 OK 暂停/继续，长按 OK 约 1.5 秒开关文字提醒，设置保存在设备中。终端输入 `+`/`-` 调音量、`p`/`n` 换台、空行启停、`h` 开关文字、`q` 退出，均需回车。长按换台不会同时调音量。本地视频结束后顺序循环，直播源失效后延迟重试或切换下一项。
+- 公共直播源可能失效、加载较慢或中途缓冲。本项目不提供电视内容，也不保证所有频道可用。
+- 电脑程序会尝试在设备重启或连接中断后重连。本地文件在 USB 单通道重连后会从头播放。
+- 不支持蓝牙视频传输或脱离电脑独立播放。
+- 已做 macOS 真机检查；Windows 启动脚本尚未做完整真机验证。
+- 配网信息和配对密钥不是发布材料，请勿分享 `~/.config/pocket-tv/device.json`。媒体传输面向可信局域网，不做加密。
 
-**音量保存在设备 NVS 中，重启和主机重连后恢复上次设置。** 首次使用默认 0；短按 ↑/↓ 调整后立即保存，降到 0 即无声。退出程序或 USB 通信中断会停止声音，但不会把记忆音量清零。不设独立静音开关。固件和主机协议为 PTV5，需配套使用。
+## 开发与版本
 
-音频为 16 kHz 单声道，由独立任务连续输出。设备保留 512 毫秒 PCM 缓冲，主机提前约 450 毫秒发送音频并预缓冲约 1 秒网络内容，音画分别调度；画面迟到可丢帧，音频不会因此丢包。网络长时间断流仍可能停顿，日志中的 `audio_underruns` 和 `audio_write_errors` 用于区分缓冲断粮与输出错误。
+[本次更新](releases/v1.1.0/README.md) · [构建与实现细节](docs/technical-notes.md) · [验证记录与已知限制](docs/verification.md)
 
+```sh
+firmware/tools/validate.sh --static
+```
 
-自动按显示宽高比选择横屏或竖屏，处理视频旋转元数据和非方形像素，等比缩放留黑边。横屏视频区域最大 320×240，竖屏最大 240×320，不为文字预留空间。文字叠加在底部 32 像素区域，使用白字和 50% 半透明黑底；隐藏后立即恢复原画面，暂停时也能开关。音量提示如 `vol80`；播放时显示 `ok pause`，暂停时显示 `ok play`，长按提示为 `hold to hide`。默认目标 20 fps，传输或解码落后时丢帧追赶。
-
-## IPTV 来源
-
-预设 `iptv-org` 为 [iptv-org/iptv](https://github.com/iptv-org/iptv) 的全球列表，`china` 为其中国地区列表；`free-tv` 为 [Free-TV/IPTV](https://github.com/Free-TV/IPTV)。可先 `--list` 查看，再用 `--search` 按名称或分组筛选。公共频道可用性随来源和网络变化，不保证每条都可播放。
-
-HLS 清单作为一个视频源处理；IPTV 清单中的频道作为多个可翻页项目。支持相对地址与 VLC 风格的 User-Agent/Referer 字段。
-
-## 固件
-
-适配此项目的 AI Passport 引脚和 8 MB Flash。ESP-IDF 5.5.3：
+固件使用 ESP-IDF 5.5.3。构建完整镜像：
 
 ```sh
 . ~/esp/esp-idf/export.sh
-cd firmware
-IDF_COMPONENT_MANAGER=0 idf.py build
-idf.py -p /dev/cu.usbmodem1101 flash
+IDF_COMPONENT_MANAGER=0 idf.py -C firmware build merge-bin -o pocket-tv-full.bin
 ```
 
-应用输出 `pocket-tv.bin`；社区发布使用从地址 `0x0` 安装的完整镜像 `releases/v1.0.0/pocket-tv-full.bin`。完整镜像可用 `IDF_COMPONENT_MANAGER=0 idf.py build merge-bin -o pocket-tv-full.bin` 重新生成。分区保持原厂 Recovery 和设备标识区域，保留上电长按 UP 5 秒进入 Recovery 的引导钩子。烧录替换应用和引导程序，不执行整片擦除。
-
-## 实现
-
-PyAV 在线解码 → 旋转/缩放 → 256 色调色板和 zlib 索引帧 → USB Serial/JTAG → ESP32-C3 解压 → RGB565 SPI DMA 显示。解码队列有界，设备双接收缓冲，通过 CRC 校验和播放代次拒绝损坏或过期帧。无需将整段视频存入设备，也不支持脱离电脑独立播放或蓝牙视频流。
-
-运行 `firmware/tools/validate.sh --static` 做主机和协议测试；`tools/hardware_smoke.py PORT` 使用纯色帧及静音 PCM 检查真机协议、横竖屏和按键状态转换。它不代替实际按实体键与观察屏幕。
-
-## CCTV 试播
-
-运行 `./cctv.sh`（Windows：`cctv.cmd`）播放已筛选的 `config/cctv.m3u`。目前为 CCTV+ 1/2，两路均已在本机解码验证；它们不是 CCTV-1/2 综合台/财经台。来源与探测结果见 `config/cctv-source.md`。
-
-## 许可与素材
-
-项目代码沿用 MIT 许可，见 [LICENSE](LICENSE)。第三方组件保留各自许可与声明，见其目录。频道列表不包含视频文件；公共直播可用性由来源和网络决定。封面通过 AI 生成并标注示意，非实机截图，生成说明见 [assets/README.md](assets/README.md)。
+代码采用 [MIT](LICENSE)。Fusion Pixel 派生字库及第三方组件保留各自许可，见 [字库说明](assets/fonts/fusion-pixel/README.md) 和组件目录。封面是 [AI 示意图](assets/README.md)，以 WebP 保存，不是实机截图。

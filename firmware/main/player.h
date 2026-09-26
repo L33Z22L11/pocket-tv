@@ -3,9 +3,9 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define GP_MAGIC 0x35565450u /* PTV5, little endian */
-#define GP_MAX_PAYLOAD 49152u
-enum { GP_HELLO=1, GP_FRAME=2, GP_STATUS=3, GP_KEY=4, GP_SINK=5, GP_AUDIO=6, GP_VOLUME=7, GP_LAYOUT=8, GP_STOP=9, GP_SELECT=10 };
+#define GP_MAGIC 0x36565450u /* PTV6, little endian */
+#define GP_MAX_PAYLOAD 32768u
+enum { GP_HELLO=1, GP_FRAME=2, GP_STATUS=3, GP_KEY=4, GP_SINK=5, GP_AUDIO=6, GP_VOLUME=7, GP_LAYOUT=8, GP_STOP=9, GP_SELECT=10, GP_WIFI_CONFIG=11, GP_WIFI_CLEAR=12, GP_WIFI_SCAN=13, GP_WIFI_SCAN_RESULT=14, GP_NOTICE=15, GP_CHANNEL_NAME=16 };
 typedef struct {
     uint32_t magic, type, sequence, generation, argument, length, crc, header_crc;
 } gp_header_t;

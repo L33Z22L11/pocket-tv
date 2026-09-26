@@ -29,7 +29,7 @@ class PlaybackTests(unittest.TestCase):
         class Device:
             def __init__(self, port):
                 self.switched=False
-                self.state=dict(protocol='PTV5',volume=40,index=0,generation=1,count=2,
+                self.state=dict(protocol='PTV6',volume=40,index=0,generation=1,count=2,
                                 playing=True,preview=True,landscape=True,audio_queued=0,rendered=False)
             def read(self): return []
             def close(self): pass
@@ -99,7 +99,7 @@ class PlaybackTests(unittest.TestCase):
         clock=Clock();frames=[]
         class Device:
             def __init__(self, path):
-                self.state=dict(protocol='PTV5',volume=0,index=0,generation=1,count=1,
+                self.state=dict(protocol='PTV6',volume=0,index=0,generation=1,count=1,
                                 playing=True,preview=True,landscape=True,audio_queued=0,rendered=False)
             def read(self): pass
             def close(self): pass
@@ -122,3 +122,60 @@ class PlaybackTests(unittest.TestCase):
             player._play_session([Source('video','video')],'fake',3,20,queue.Queue(),{})
         self.assertEqual(len(frames),2)
         self.assertGreaterEqual(frames[1],2.5)
+
+    def test_live_audio_waits_for_real_buffer_not_first_packet(self):
+        clock=Clock();sent=[]
+        class Device:
+            def __init__(self, path):
+                self.state=dict(protocol='PTV6',volume=40,index=0,generation=1,count=1,
+                                playing=True,preview=True,landscape=True,audio_queued=0,rendered=False)
+            def read(self): pass
+            def close(self): pass
+            def request(self, kind, **kwargs):
+                if kind==AUDIO:sent.append(clock.now)
+                if kind==FRAME:self.state.update(rendered=True,preview=False)
+                return self.state.copy()
+        class TimedQueue:
+            def __init__(self):
+                self.items=[(0,Event('video',0,b'frame',True)),(0,Event('audio',0,b'\0'*1024))]
+                self.items += [(3,Event('audio',i*.032,b'\0'*1024)) for i in range(1,70)]
+            def empty(self): return not self.items or self.items[0][0]>clock.now
+            def qsize(self): return 0 if self.empty() else len(self.items)
+            def get_nowait(self):
+                if self.empty(): raise queue.Empty
+                return self.items.pop(0)[1]
+        class Decode:
+            has_audio=True
+            def __init__(self,*args):self.queue=TimedQueue()
+            def close(self):pass
+        with patch.object(player,'Link',Device),patch.object(player,'Decoder',Decode),patch.object(player,'time',clock),contextlib.redirect_stdout(io.StringIO()):
+            player._play_session([Source('live','https://example.org/live')],'fake',5,20,queue.Queue(),{})
+        self.assertTrue(sent)
+        self.assertGreaterEqual(sent[0],3)
+
+    def test_live_timestamp_gap_does_not_cause_twenty_second_wait(self):
+        clock=Clock();frames=[]
+        class Device:
+            def __init__(self, path):
+                self.state=dict(protocol='PTV6',volume=0,index=0,generation=1,count=1,
+                                playing=True,preview=True,landscape=True,audio_queued=0,rendered=False)
+            def read(self):pass
+            def close(self):pass
+            def request(self, kind, **kwargs):
+                if kind==FRAME:
+                    frames.append(clock.now);self.state.update(rendered=True,preview=False)
+                return self.state.copy()
+        class TimedQueue:
+            def __init__(self):self.items=[(0,Event('video',0,b'first',True)),(2,Event('video',20,b'after-gap',True))]
+            def empty(self):return not self.items or self.items[0][0]>clock.now
+            def qsize(self):return 0 if self.empty() else 1
+            def get_nowait(self):
+                if self.empty():raise queue.Empty
+                return self.items.pop(0)[1]
+        class Decode:
+            def __init__(self,*args):self.queue=TimedQueue()
+            def close(self):pass
+        with patch.object(player,'Link',Device),patch.object(player,'Decoder',Decode),patch.object(player,'time',clock),contextlib.redirect_stdout(io.StringIO()):
+            player._play_session([Source('live','https://example.org/live')],'fake',4,20,queue.Queue(),{})
+        self.assertEqual(len(frames),2)
+        self.assertLess(frames[1],3.5)

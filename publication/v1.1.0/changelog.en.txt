@@ -1,0 +1,5 @@
+- Added a desktop channel manager with search, groups, favorites and a first-frame check, using Catppuccin Mocha by default.
+- Added USB-assisted 2.4 GHz Wi-Fi setup and USB-first transport: try paired Wi-Fi after USB disconnects and switch back when it returns. Handover requires buffering.
+- Replaced the persistent HUD with on-demand Chinese help, pause/loading notices, a temporary volume bar and a channel-name badge.
+- Corrected landscape channel order while retaining volume memory; improved switch cancellation, loading feedback and recovery after playback interruptions.
+- Updated the cover and getting-started guide. Public live-stream loading and continuity still depend on the source and network.

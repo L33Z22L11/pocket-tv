@@ -19,14 +19,16 @@ uint32_t gp_crc32(const void *data, size_t length) {
 }
 
 bool gp_header_valid(const gp_header_t *h) {
-    return h->magic == GP_MAGIC && h->type >= GP_HELLO && h->type <= GP_SELECT &&
+    return h->magic == GP_MAGIC && h->type >= GP_HELLO && h->type <= GP_CHANNEL_NAME &&
         h->length <= GP_MAX_PAYLOAD &&
-        ((h->type == GP_FRAME || h->type == GP_SINK || h->type == GP_AUDIO) ? h->length > 0 : h->length == 0) &&
+        (h->type != GP_WIFI_CONFIG || h->length == 130) &&
+        (h->type != GP_CHANNEL_NAME || h->length < 128) &&
+        ((h->type == GP_CHANNEL_NAME || h->type == GP_FRAME || h->type == GP_SINK || h->type == GP_AUDIO || h->type == GP_WIFI_CONFIG) ? h->length > 0 : h->length == 0) &&
         h->header_crc == gp_crc32(h, offsetof(gp_header_t, header_crc));
 }
 
 void gp_init(gp_state_t *s) {
-    *s = (gp_state_t){.generation=1, .playing=true, .preview=true, .show_hints=true};
+    *s = (gp_state_t){.generation=1, .playing=true, .preview=true, .show_hints=false};
 }
 
 bool gp_count(gp_state_t *s, uint32_t count) {
@@ -66,7 +68,9 @@ unsigned gp_volume_key(bool up, bool landscape) {
 }
 
 unsigned gp_channel_key(bool up, bool landscape) {
-    return up != landscape ? 0 : 1;
+    /* Physical first key (UP) selects the smaller channel in either layout. */
+    (void)landscape;
+    return up ? 0 : 1;
 }
 bool gp_select(gp_state_t *s, uint32_t index) {
     if (index >= s->count) return false;
